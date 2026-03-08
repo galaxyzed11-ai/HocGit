@@ -1,0 +1,204 @@
+Tao backend su dung Laravel
+
+composer create-project laravel/laravel shop-api
+
+cd shop-api
+
+Tao Frontend su dung react
+
+npx create-react-app shop-frontend
+
+cd shop-frontend
+
+npm start
+
+npm install axios
+
+Cau hinh file .evn (ket noi voi database)
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=shop_db_1
+DB_USERNAME=root
+DB_PASSWORD=
+
+Tao bang cho database
+
+php artisan make:model Product -m
+
+Schema::create('products', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->text('description');
+    $table->integer('price');
+    $table->integer('stock');
+    $table->string('image')->nullable();
+    $table->timestamps();
+});
+
+php artisan make:model Order -m
+
+Schema::create('orders', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained();
+    $table->integer('total_price');
+    $table->timestamps();
+});
+
+php artisan migrate
+
+Neu loi do dai ky tu cua MySQL thi cach sua la: 
+Vao app/Providers/AppServiceProvider.php
+Sua 
+use Illuminate\Support\Facades\Schema;
+
+public function boot(): void
+{
+    Schema::defaultStringLength(191);
+}
+sau do chay lai
+php artisan migrate:fresh
+
+Tao api 
+
+Mở routes/api.php
+
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\OrderController;
+
+Route::get('/products', [ProductController::class, 'index']);
+Route::post('/orders', [OrderController::class, 'store']);
+
+Sau khi tao xong vao bootstrap/app.php
+
+them api: __DIR__.'/../routes/api.php',
+
+Tao ProductController
+
+php artisan make:controller ProductController
+
+use App\Models\Product;
+
+public function index()
+{
+    return response()->json(Product::all());
+}
+
+Tao OrderController
+
+php artisan make:controller OrderController
+
+use App\Models\Order;
+
+public function store(Request $request)
+{
+    $order = Order::create([
+        'user_id' => 1,
+        'total_price' => $request->total_price
+    ]);
+
+    return response()->json($order);
+}
+
+Chay backend
+
+php artisan serve
+
+Frontend
+
+App.js
+
+import './App.css';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+
+function App() {
+  const [products, setProducts] = useState([]);
+
+  useEffect(() => {
+    axios.get("http://localhost:8000/api/products")
+      .then(res => {
+        setProducts(res.data);
+      })
+      .catch(err => {
+        console.error(err);
+      });
+  }, []);
+
+  return (
+    <div className="container">
+      <h1 className="title">🛒 Shop Monolithic</h1>
+
+      <div className="product-grid">
+        {products.map(product => (
+          <div key={product.id} className="card">
+
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-img"
+            />
+
+            <h3>{product.name}</h3>
+            <p className="price">{product.price} VND</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default App;
+
+App.css
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f9;
+}
+
+.container {
+  padding: 40px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 40px;
+  color: #333;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.price {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.product-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
